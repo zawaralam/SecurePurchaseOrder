@@ -10,62 +10,86 @@ import binascii
 
 #Generate nonce
 alphabet = string.ascii_letters + string.digits
-nonce1 = ''.join(secrets.choice(alphabet) for i in range(8))
+nonce_m = ''.join(secrets.choice(alphabet) for i in range(8))
 
 print('\nSecure Purchase Order\n')
 
-port_purchaser = 60000                    # Reserve a port for your service.
-port_purchasingdepartment = 25000
-s_purchaser = socket.socket()             # Create a socket object
-s_purchasingdepartment = socket.socket()
+port_p = 60000                    # Reserve a port for your service.
+port_pd = 25000
+s_p = socket.socket()             # Create a socket object
+s_pd = socket.socket()
 host = socket.gethostname()     # Get local machine name
 print(host)
-s_purchaser.bind(('127.0.0.1', port_purchaser)) 
-s_purchasingdepartment.bind(('127.0.0.1', port_purchasingdepartment))     # Bind to the port
-print("\nManager")
-s_purchaser.listen(1) 
-s_purchasingdepartment.listen(1)                    # Now wait for client connection.
+s_p.bind(('127.0.0.1', port_p)) 
+s_pd.bind(('127.0.0.1', port_pd))     # Bind to the port
+print("\nm")
+s_p.listen(1) 
+s_pd.listen(1)                    # Now wait for client connection.
 
 print("\nWaiting to connect...\n")
 
 
+conn_p, addr_p = s_p.accept()     # Establish connection with client.
+conn_pd, addr_pd = s_pd.accept()     # Establish connection with client.
 
-conn_purchaser, addr_purchaser = s_purchaser.accept()     # Establish connection with client.
-conn_purchasingdepartment, addr_purchasingdepartment = s_purchasingdepartment.accept()     # Establish connection with client.
+#Generate the m's RSA key
+rsa_key_m = RSA.generate(2048)
 
-#Generate the manager's RSA key
-rsa_key_manager = RSA.generate(2048)
+#Generate the m's public key from the m's RSA key
+pub_key_m = rsa_key_m.publickey()
+pubKeyPEM_m = pub_key_m.exportKey()
 
-#Generate the manager's public key from the manager's RSA key
-pub_key_manager = rsa_key_manager.publickey()
-pubKeyPEM_manager = pub_key_manager.exportKey()
+#Obtain m's private key
+privKeyPEM_m = rsa_key_m.exportKey()
 
-#Obtain manager's private key
-privKeyPEM_manager = rsa_key_manager.exportKey()
+#m sends its public key
+conn_p.send(pubKeyPEM_m)
+conn_pd.send(pubKeyPEM_m)
 
-#Manager sends its public key
-conn_purchaser.send(pubKeyPEM_manager)
-conn_purchasingdepartment.send(pubKeyPEM_manager)
-print("Sending to purchaser" + pubKeyPEM_manager.decode())
-print("Sending to purchasing department" + pubKeyPEM_manager.decode())
+#m receives p's public key and prints it
+pub_key_received_p = conn_p.recv(524288)
+pub_key_p = RSA.importKey(pub_key_received_p)
 
-#manager receives purchaser's public key and prints it
-pub_key_received_purchaser = conn_purchaser.recv(524288)
-pub_key_purchaser = RSA.importKey(pub_key_received_purchaser)
-print(pub_key_purchaser)
+#m receives purchasing department's public key and prints it
+pub_key_received_pd = conn_pd.recv(524288)
+pub_key_pd = RSA.importKey(pub_key_received_pd)
 
-#manager receives purchasing department's public key and prints it
-pub_key_received_purchasingdepartment = conn_purchasingdepartment.recv(524288)
-pub_key_purchasingdepartment = RSA.importKey(pub_key_received_purchasingdepartment)
-print(pub_key_purchasingdepartment)
+#symmetric key distribution step 1
+message1_p_encrypted = conn_p.recv(524288)
+message1_p_encrypted = pickle.loads(message1_p_encrypted)
+decryptor_m = PKCS1_OAEP.new(rsa_key_m)
+decrypted_nonce_p = decryptor_m.decrypt(message1_p_encrypted[0])
+decrypted_id_p = decryptor_m.decrypt(message1_p_encrypted[1])
+print("Step1: From p: " + decrypted_nonce_p.decode() + " " + decrypted_id_p.decode())
 
-#Encrypt message with an encryptor using the client's public key and display it
-# encryptor = PKCS1_OAEP.new(pub_key_B)
-# nonce1_encrypted = encryptor.encrypt(nonce1.encode())
-# id_server_encrypted = encryptor.encrypt(id_server.encode())
+message1_pd_encrypted = conn_pd.recv(524288)
+message1_pd_encrypted = pickle.loads(message1_pd_encrypted)
+decrypted_nonce_pd = decryptor_m.decrypt(message1_pd_encrypted[0])
+decrypted_id_pd = decryptor_m.decrypt(message1_pd_encrypted[1])
+print("Step1: From Purchasing Department: " + decrypted_nonce_pd.decode() + " " + decrypted_id_pd.decode())
 
-conn_purchaser.close()
+#symmetric key distribution step 2
+encryptor_p = PKCS1_OAEP.new(pub_key_p)
+nonce_p_encrypted = encryptor_p.encrypt(decrypted_nonce_p)
+nonce_m_encrypted = encryptor_p.encrypt(nonce_m.encode())
+message2_p_encrypted = [nonce_p_encrypted, nonce_m_encrypted]
+message2_p_encrypted= pickle.dumps(message2_p_encrypted)
+conn_p.send(message2_p_encrypted)
 
+encryptor_pd = PKCS1_OAEP.new(pub_key_pd)
+nonce_pd_encrypted = encryptor_pd.encrypt(decrypted_nonce_pd)
+nonce_m_encrypted1 = encryptor_pd.encrypt(nonce_m.encode())
+message2_pd_encrypted = [nonce_pd_encrypted, nonce_m_encrypted1]
+message2_pd_encrypted= pickle.dumps(message2_pd_encrypted)
+conn_pd.send(message2_pd_encrypted)
+
+#step 3
+message3_p_encrypted = conn_p.recv(524288)
+decrypted_nonce_m = decryptor_m.decrypt(message3_p_encrypted)
+print("Step3: From p: " + decrypted_nonce_m.decode())
+
+conn_p.close()
+conn_pd.close()
 print ('Client Disconnected')
 
 
