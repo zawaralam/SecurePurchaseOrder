@@ -22,7 +22,7 @@ host = socket.gethostname()     # Get local machine name
 print(host)
 s_p.bind(('127.0.0.1', port_p)) 
 s_pd.bind(('127.0.0.1', port_pd))     # Bind to the port
-print("\nm")
+print("Manager")
 s_p.listen(1) 
 s_pd.listen(1)                    # Now wait for client connection.
 
@@ -30,7 +30,9 @@ print("\nWaiting to connect...\n")
 
 
 conn_p, addr_p = s_p.accept()     # Establish connection with client.
+print("Connected to Purchaser...")
 conn_pd, addr_pd = s_pd.accept()     # Establish connection with client.
+print("Connected to Purchasing Department...\n")
 
 #Generate the m's RSA key
 rsa_key_m = RSA.generate(2048)
@@ -60,13 +62,15 @@ message1_p_encrypted = pickle.loads(message1_p_encrypted)
 decryptor_m = PKCS1_OAEP.new(rsa_key_m)
 decrypted_nonce_p = decryptor_m.decrypt(message1_p_encrypted[0])
 decrypted_id_p = decryptor_m.decrypt(message1_p_encrypted[1])
-print("Step1: From p: " + decrypted_nonce_p.decode() + " " + decrypted_id_p.decode())
+print("Step1:\nFrom Purchaser: " + "Purchaser's nonce: " +
+decrypted_nonce_p.decode() + " Purchaser's ID: " + decrypted_id_p.decode())
 
 message1_pd_encrypted = conn_pd.recv(524288)
 message1_pd_encrypted = pickle.loads(message1_pd_encrypted)
 decrypted_nonce_pd = decryptor_m.decrypt(message1_pd_encrypted[0])
 decrypted_id_pd = decryptor_m.decrypt(message1_pd_encrypted[1])
-print("Step1: From Purchasing Department: " + decrypted_nonce_pd.decode() + " " + decrypted_id_pd.decode())
+print("Step1:\nFrom Purchasing Department: " + "Purchasing Department's Nonce: " +
+decrypted_nonce_pd.decode() + " Purchasing Department's ID: " + decrypted_id_pd.decode())
 
 #symmetric key distribution step 2
 encryptor_p = PKCS1_OAEP.new(pub_key_p)
@@ -83,10 +87,18 @@ message2_pd_encrypted = [nonce_pd_encrypted, nonce_m_encrypted1]
 message2_pd_encrypted= pickle.dumps(message2_pd_encrypted)
 conn_pd.send(message2_pd_encrypted)
 
+print("\nStep 2:\nTo Purchaser: Purchaser's Nonce: " + decrypted_nonce_p.decode())
+print("Step 2:\nTo Purchasing Department: Purchasing Department's Nonce" + decrypted_nonce_pd.decode())
+
 #step 3
 message3_p_encrypted = conn_p.recv(524288)
+message3_pd_encrypted = conn_pd.recv(524288)
+
 decrypted_nonce_m = decryptor_m.decrypt(message3_p_encrypted)
-print("Step3: From p: " + decrypted_nonce_m.decode())
+decrypted_nonce_m1 = decryptor_m.decrypt(message3_pd_encrypted)
+print("\nStep3:\nFrom purchaser: Manager's Nonce " + decrypted_nonce_m.decode())
+print("Step3:\nFrom purchasing department: Manager's Nonce" + decrypted_nonce_m1.decode())
+print("\nVerified Purchaser and Purchasing Department")
 
 conn_p.close()
 conn_pd.close()
