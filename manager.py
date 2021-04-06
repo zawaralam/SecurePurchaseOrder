@@ -119,72 +119,78 @@ print("\nStep3:\nFrom purchaser: Manager's Nonce " + decrypted_nonce_m)
 print("Step3:\nFrom purchasing department: Manager's Nonce" + decrypted_nonce_m1)
 print("\nVerified Purchaser and Purchasing Department")
 
-#decrypt the purchase order with managers private key 
-PO_request = conn_p.recv(524288)
-PO_request = pickle.loads(PO_request)
-CompanyName =  rsa_decrypt_message(rsa_key_m, PO_request[0])
-POnumber =  rsa_decrypt_message(rsa_key_m, PO_request[1])
-VendorName =  rsa_decrypt_message(rsa_key_m, PO_request[2])
-VendorAddress =  rsa_decrypt_message(rsa_key_m, PO_request[3])
-ShipToCompanyName =  rsa_decrypt_message(rsa_key_m, PO_request[4])
-ShipToCompanyAddress =  rsa_decrypt_message(rsa_key_m, PO_request[5])
-Requisitioner =  rsa_decrypt_message(rsa_key_m, PO_request[6])
-ShipVia =  rsa_decrypt_message(rsa_key_m, PO_request[7])
-
-#verify the purchaser's signature with purchaser's public key
-verified = verify_signature(pub_key_p, PO_request[8] ,Requisitioner)
-assert verified, ('Signature verification failed\n')
-print ('\nSuccessfully verified purchase order!\n')
-
-#display the purchase order with the timestamp
-print("Timestamp: " +PO_request[9] + "\nPurchase Order Request:\nCompany Name: " +CompanyName + 
-"\nPurchase Order Number: " + POnumber + "\nVendor Name: " + VendorName +
-"\nVendor's Address: " + VendorAddress + "\nShip To: " + ShipToCompanyName + 
-"\n" + VendorAddress + "\nRequisitioner: " + Requisitioner + "\nShip VIA: " + ShipVia)
-
-#ask for manager's approval for purchase order
 while True:
-    PO_approval = input("Manager: Do you want to approve the Purchase Order,\nType \"APPROVE\" or \"REJECT\" for response\n")
-    if(PO_approval == 'APPROVE'):
-        print("Purchase Order Approved")
-        #Encrypt Purchase Order with purchasing department's public key
-        CompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, CompanyName)
-        POnumber_encrypted1 = rsa_encrypt_message(pub_key_pd, POnumber)
-        VendorName_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorName)
-        VendorAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorAddress)
-        ShipToCompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyName)
-        ShipToCompanyAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyAddress)
-        Requisitioner_encrypted1 = rsa_encrypt_message(pub_key_pd, Requisitioner)
-        ShipVia_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipVia)
-
-        #set up signature with the requisitioner's name 
-        p_signature = sign_PO(rsa_key_m, Requisitioner)
-
-        PurchaseOrder1 = [CompanyName_encrypted1, POnumber_encrypted1, VendorName_encrypted1,
-        VendorAddress_encrypted1, ShipToCompanyName_encrypted1,ShipToCompanyAddress_encrypted1,
-        Requisitioner_encrypted1, ShipVia_encrypted1, p_signature, ctime()]
-        PurchaseOrder1 = pickle.dumps(PurchaseOrder1)
-        conn_pd.send(PurchaseOrder1)
-        po_approved = conn_pd.recv(524288)
-        po_approved =  rsa_decrypt_message(rsa_key_m, po_approved)
-        po_approved_encrypted = rsa_encrypt_message(pub_key_p, po_approved)
-        conn_p.send(po_approved_encrypted)
-
+    #decrypt the purchase order with managers private key 
+    PO_request = conn_p.recv(524288)
+    PO_request = pickle.loads(PO_request)
+    CompanyName =  rsa_decrypt_message(rsa_key_m, PO_request[0])
+    if(CompanyName=="disconnect"):
+        print("Purchaser is no longer placing an order")
         break
-    #if manager rejects, send encrypted rejection to purchaser
-    if (PO_approval == 'REJECT'):
-        print("Purchase Order Rejected")
-        rejected = rsa_encrypt_message(pub_key_p, "REJECTED")
-        conn_p.send(rejected)
-        break
-    else: 
-        print("Response not recognized")
+    else:
+        POnumber =  rsa_decrypt_message(rsa_key_m, PO_request[1])
+        VendorName =  rsa_decrypt_message(rsa_key_m, PO_request[2])
+        VendorAddress =  rsa_decrypt_message(rsa_key_m, PO_request[3])
+        ShipToCompanyName =  rsa_decrypt_message(rsa_key_m, PO_request[4])
+        ShipToCompanyAddress =  rsa_decrypt_message(rsa_key_m, PO_request[5])
+        Requisitioner =  rsa_decrypt_message(rsa_key_m, PO_request[6])
+        ShipVia =  rsa_decrypt_message(rsa_key_m, PO_request[7])
+
+        #verify the purchaser's signature with purchaser's public key
+        verified = verify_signature(pub_key_p, PO_request[8] ,Requisitioner)
+        assert verified, ('Signature verification failed\n')
+        print ('\nSuccessfully verified purchase order!\n')
+
+        #display the purchase order with the timestamp
+        print("Timestamp: " +PO_request[9] + "\nPurchase Order Request:\nCompany Name: " +CompanyName + 
+        "\nPurchase Order Number: " + POnumber + "\nVendor Name: " + VendorName +
+        "\nVendor's Address: " + VendorAddress + "\nShip To: " + ShipToCompanyName + 
+        "\n" + VendorAddress + "\nRequisitioner: " + Requisitioner + "\nShip VIA: " + ShipVia)
+
+        #ask for manager's approval for purchase order
+        while True:
+            print("\nWaiting for purchase order..\n")
+            PO_approval = input("Manager: Do you want to approve the Purchase Order,\n1.APPROVE\n2.REJECT\nResponse:")
+            if(PO_approval == 'APPROVE'):
+                print("Purchase Order Approved")
+                #Encrypt Purchase Order with purchasing department's public key
+                CompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, CompanyName)
+                POnumber_encrypted1 = rsa_encrypt_message(pub_key_pd, POnumber)
+                VendorName_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorName)
+                VendorAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorAddress)
+                ShipToCompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyName)
+                ShipToCompanyAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyAddress)
+                Requisitioner_encrypted1 = rsa_encrypt_message(pub_key_pd, Requisitioner)
+                ShipVia_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipVia)
+
+                #set up signature with the requisitioner's name 
+                p_signature = sign_PO(rsa_key_m, Requisitioner)
+
+                PurchaseOrder1 = [CompanyName_encrypted1, POnumber_encrypted1, VendorName_encrypted1,
+                VendorAddress_encrypted1, ShipToCompanyName_encrypted1,ShipToCompanyAddress_encrypted1,
+                Requisitioner_encrypted1, ShipVia_encrypted1, p_signature, ctime()]
+                PurchaseOrder1 = pickle.dumps(PurchaseOrder1)
+                conn_pd.send(PurchaseOrder1)
+                po_approved = conn_pd.recv(524288)
+                po_approved =  rsa_decrypt_message(rsa_key_m, po_approved)
+                po_approved_encrypted = rsa_encrypt_message(pub_key_p, po_approved)
+                conn_p.send(po_approved_encrypted)
+
+                break
+            #if manager rejects, send encrypted rejection to purchaser
+            if (PO_approval == 'REJECT'):
+                print("Purchase Order Rejected")
+                rejected = rsa_encrypt_message(pub_key_p, "REJECTED")
+                conn_p.send(rejected)
+                break
+            else: 
+                print("Response not recognized")
 
 
 
 conn_p.close()
 conn_pd.close()
-print ('Client Disconnected')
+print ('Purchaser Disconnected')
 
 
 

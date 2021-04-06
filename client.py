@@ -109,58 +109,78 @@ nonce_pd_encrypted = rsa_encrypt_message(pub_key_pd, decrypted_nonce_pd)
 s_pd.send(nonce_pd_encrypted)
 print("\nStep 3:\nTo Purchasing Department: Purchasing Department's Nonce: " + decrypted_nonce_m)
 print("\nVerified Purchasing Department and Manager")
-#Purchaser places an order 
-CompanyName = input("Enter the Company Name: ")
-POnumber = input("Enter the Purchase Order Number: ")
-VendorName = input("Enter the Vendor's Name: ")
-VendorAddress = input("Enter the Vendor's Address: ")
-ShipToCompanyName = input("Enter the Company's Name that is placing the order: ")
-ShipToCompanyAddress = input("Enter the Company's Address that is placing the order: ")
-Requisitioner = input("Enter the name of the person ordering the products: ")
-ShipVia = input("Enter the method of shipment: ")
 
-#Encrypt Purchase Order with manager's public key
-CompanyName_encrypted = rsa_encrypt_message(pub_key_m, CompanyName)
-POnumber_encrypted = rsa_encrypt_message(pub_key_m, POnumber)
-VendorName_encrypted = rsa_encrypt_message(pub_key_m, VendorName)
-VendorAddress_encrypted = rsa_encrypt_message(pub_key_m, VendorAddress)
-ShipToCompanyName_encrypted = rsa_encrypt_message(pub_key_m, ShipToCompanyName)
-ShipToCompanyAddress_encrypted = rsa_encrypt_message(pub_key_m, ShipToCompanyAddress)
-Requisitioner_encrypted = rsa_encrypt_message(pub_key_m, Requisitioner)
-ShipVia_encrypted = rsa_encrypt_message(pub_key_m, ShipVia)
+while True:
+    placepurchase = input("Do you want to place a purchase order?\n1.Yes\n2.No\nResponse:")
+    if(placepurchase=="Yes"):
+        #Purchaser places an order 
+        CompanyName = input("Enter the Company Name: ")
+        POnumber = input("Enter the Purchase Order Number: ")
+        VendorName = input("Enter the Vendor's Name: ")
+        VendorAddress = input("Enter the Vendor's Address: ")
+        ShipToCompanyName = input("Enter the Company's Name that is placing the order: ")
+        ShipToCompanyAddress = input("Enter the Company's Address that is placing the order: ")
+        Requisitioner = input("Enter the name of the person ordering the products: ")
+        ShipVia = input("Enter the method of shipment: ")
 
-#Encrypt Purchase Order with purchasing department's public key
-CompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, CompanyName)
-POnumber_encrypted1 = rsa_encrypt_message(pub_key_pd, POnumber)
-VendorName_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorName)
-VendorAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorAddress)
-ShipToCompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyName)
-ShipToCompanyAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyAddress)
-Requisitioner_encrypted1 = rsa_encrypt_message(pub_key_pd, Requisitioner)
-ShipVia_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipVia)
+        #Encrypt Purchase Order with manager's public key
+        CompanyName_encrypted = rsa_encrypt_message(pub_key_m, CompanyName)
+        POnumber_encrypted = rsa_encrypt_message(pub_key_m, POnumber)
+        VendorName_encrypted = rsa_encrypt_message(pub_key_m, VendorName)
+        VendorAddress_encrypted = rsa_encrypt_message(pub_key_m, VendorAddress)
+        ShipToCompanyName_encrypted = rsa_encrypt_message(pub_key_m, ShipToCompanyName)
+        ShipToCompanyAddress_encrypted = rsa_encrypt_message(pub_key_m, ShipToCompanyAddress)
+        Requisitioner_encrypted = rsa_encrypt_message(pub_key_m, Requisitioner)
+        ShipVia_encrypted = rsa_encrypt_message(pub_key_m, ShipVia)
 
-#set up signature with the requisitioner's name 
-p_signature = sign_PO(rsa_key_p, Requisitioner)
+        #Encrypt Purchase Order with purchasing department's public key
+        CompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, CompanyName)
+        POnumber_encrypted1 = rsa_encrypt_message(pub_key_pd, POnumber)
+        VendorName_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorName)
+        VendorAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, VendorAddress)
+        ShipToCompanyName_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyName)
+        ShipToCompanyAddress_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipToCompanyAddress)
+        Requisitioner_encrypted1 = rsa_encrypt_message(pub_key_pd, Requisitioner)
+        ShipVia_encrypted1 = rsa_encrypt_message(pub_key_pd, ShipVia)
 
-#send the purchase order with signature and timestamp
-PurchaseOrder = [CompanyName_encrypted, POnumber_encrypted, VendorName_encrypted,
-VendorAddress_encrypted, ShipToCompanyName_encrypted,ShipToCompanyAddress_encrypted,
-Requisitioner_encrypted, ShipVia_encrypted, p_signature, ctime()]
+        #set up signature with the requisitioner's name 
+        p_signature = sign_PO(rsa_key_p, Requisitioner)
 
-PurchaseOrder1 = [CompanyName_encrypted1, POnumber_encrypted1, VendorName_encrypted1,
-VendorAddress_encrypted1, ShipToCompanyName_encrypted1,ShipToCompanyAddress_encrypted1,
-Requisitioner_encrypted1, ShipVia_encrypted1, p_signature, ctime()]
+        #send the purchase order with signature and timestamp
+        PurchaseOrder = [CompanyName_encrypted, POnumber_encrypted, VendorName_encrypted,
+        VendorAddress_encrypted, ShipToCompanyName_encrypted,ShipToCompanyAddress_encrypted,
+        Requisitioner_encrypted, ShipVia_encrypted, p_signature, ctime()]
 
-PurchaseOrder = pickle.dumps(PurchaseOrder)
-PurchaseOrder1 = pickle.dumps(PurchaseOrder1)
-s.send(PurchaseOrder)
-s_pd.send(PurchaseOrder1)
+        PurchaseOrder1 = [CompanyName_encrypted1, POnumber_encrypted1, VendorName_encrypted1,
+        VendorAddress_encrypted1, ShipToCompanyName_encrypted1,ShipToCompanyAddress_encrypted1,
+        Requisitioner_encrypted1, ShipVia_encrypted1, p_signature, ctime()]
 
-po_confirmtation_encrypted = s.recv(524288)
-po_confirmtation = rsa_decrypt_message(rsa_key_p,po_confirmtation_encrypted)
-if(po_confirmtation=="REJECTED"):
-    print("Manager has rejected purchase order!")
-if(po_confirmtation=="Purchase Order Approved"):
-    print("Your purchase order is approved!")
+        PurchaseOrder = pickle.dumps(PurchaseOrder)
+        PurchaseOrder1 = pickle.dumps(PurchaseOrder1)
+        s.send(PurchaseOrder)
+        s_pd.send(PurchaseOrder1)
+
+        print("\nWaiting for approval...\n")
+
+        po_confirmtation_encrypted = s.recv(524288)
+        po_confirmtation = rsa_decrypt_message(rsa_key_p,po_confirmtation_encrypted)
+        if(po_confirmtation=="REJECTED"):
+            print("Manager has rejected purchase order!")
+        if(po_confirmtation=="Purchase Order Approved"):
+            print("Your purchase order is approved!")
+    elif(placepurchase=="No"):
+        disconnect = "disconnect"
+        disconnect_encrypted = rsa_encrypt_message(pub_key_m, disconnect)
+        disconnect_encrypted1 = rsa_encrypt_message(pub_key_pd, disconnect)
+        message_disconnect =[disconnect_encrypted]
+        message_disconnect1 =[disconnect_encrypted1]
+        message_disconnect=pickle.dumps(message_disconnect)
+        message_disconnect1=pickle.dumps(message_disconnect1)
+        s.send(message_disconnect)
+        s_pd.send(message_disconnect1)
+        break
+    else:
+        print("Unrecognized Response")
 
 s.close()
+s_pd.close()

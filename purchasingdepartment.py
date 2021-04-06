@@ -106,51 +106,58 @@ print("\nStep 2:\nTo Purchaser: Purchaser's Nonce: " + decrypted_nonce_p+
 nonce_m_encrypted = rsa_encrypt_message(pub_key_manager, decrypted_nonce_m)
 s.send(nonce_m_encrypted)
 print("\nStep 3:\nTo Manager: Manager's Nonce: " + decrypted_nonce_m)
-
 message3_pd_encrypted = conn_p.recv(524288)
 decrypted_nonce_pd1 = rsa_decrypt_message(rsa_key_pd, message3_pd_encrypted)
 print("\nStep3:\nFrom purchaser: Purchasing Department's Nonce " + decrypted_nonce_pd1)
 print("\nVerified Purchaser and Manager")
 
-PO_request = conn_p.recv(524288)
-PO_request = pickle.loads(PO_request)
-CompanyName =  rsa_decrypt_message(rsa_key_pd, PO_request[0])
-POnumber =  rsa_decrypt_message(rsa_key_pd, PO_request[1])
-VendorName =  rsa_decrypt_message(rsa_key_pd, PO_request[2])
-VendorAddress =  rsa_decrypt_message(rsa_key_pd, PO_request[3])
-ShipToCompanyName =  rsa_decrypt_message(rsa_key_pd, PO_request[4])
-ShipToCompanyAddress =  rsa_decrypt_message(rsa_key_pd, PO_request[5])
-Requisitioner =  rsa_decrypt_message(rsa_key_pd, PO_request[6])
-ShipVia =  rsa_decrypt_message(rsa_key_pd, PO_request[7])
+while True:
+    print("\nWaiting for purchase order..\n")
+    PO_request = conn_p.recv(524288)
+    PO_request = pickle.loads(PO_request)
+    CompanyName =  rsa_decrypt_message(rsa_key_pd, PO_request[0])
+    if(CompanyName=="disconnect"):
+        print("Purchaser is no longer placing an order")
+        break
+    else:
+        POnumber =  rsa_decrypt_message(rsa_key_pd, PO_request[1])
+        VendorName =  rsa_decrypt_message(rsa_key_pd, PO_request[2])
+        VendorAddress =  rsa_decrypt_message(rsa_key_pd, PO_request[3])
+        ShipToCompanyName =  rsa_decrypt_message(rsa_key_pd, PO_request[4])
+        ShipToCompanyAddress =  rsa_decrypt_message(rsa_key_pd, PO_request[5])
+        Requisitioner =  rsa_decrypt_message(rsa_key_pd, PO_request[6])
+        ShipVia =  rsa_decrypt_message(rsa_key_pd, PO_request[7])
 
 
-verified = verify_signature(pub_key_p, PO_request[8] ,Requisitioner)
-assert verified, ('Signature verification failed\n')
-print ('\nSuccessfully verified purchase order from purchaser!')
+        verified = verify_signature(pub_key_p, PO_request[8] ,Requisitioner)
+        assert verified, ('Signature verification failed\n')
+        print ('\nSuccessfully verified purchase order from purchaser!')
 
-PO_request_m = s.recv(524288)
-PO_request_m = pickle.loads(PO_request_m)
-CompanyName1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[0])
-POnumber1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[1])
-VendorName1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[2])
-VendorAddress1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[3])
-ShipToCompanyName1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[4])
-ShipToCompanyAddress1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[5])
-Requisitioner1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[6])
-ShipVia1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[7])
+        PO_request_m = s.recv(524288)
+        PO_request_m = pickle.loads(PO_request_m)
+        CompanyName1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[0])
+        POnumber1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[1])
+        VendorName1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[2])
+        VendorAddress1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[3])
+        ShipToCompanyName1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[4])
+        ShipToCompanyAddress1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[5])
+        Requisitioner1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[6])
+        ShipVia1 =  rsa_decrypt_message(rsa_key_pd, PO_request_m[7])
 
-verified = verify_signature(pub_key_manager, PO_request_m[8] ,Requisitioner1)
-assert verified, ('Signature verification failed\n')
-print ('Successfully verified purchase order from manager!')
+        verified = verify_signature(pub_key_manager, PO_request_m[8] ,Requisitioner1)
+        assert verified, ('Signature verification failed\n')
+        print ('Successfully verified purchase order from manager!')
 
-if(CompanyName==CompanyName1 and POnumber==POnumber1 and VendorName==VendorName1):
-    if(VendorAddress==VendorAddress1 and ShipToCompanyName==ShipToCompanyName1 and ShipToCompanyAddress==ShipToCompanyAddress1):
-        if(Requisitioner==Requisitioner1 and ShipVia==ShipVia1):
-            print("Contents Match between purchaser and manager!")
-            po_approved = "Purchase Order Approved"
-            po_approved_encrypted = rsa_encrypt_message(pub_key_manager, po_approved)
-            s.send(po_approved_encrypted)
-else:
-    print("Contents Failed to Match!")
+        if(CompanyName==CompanyName1 and POnumber==POnumber1 and VendorName==VendorName1):
+            if(VendorAddress==VendorAddress1 and ShipToCompanyName==ShipToCompanyName1 and ShipToCompanyAddress==ShipToCompanyAddress1):
+                if(Requisitioner==Requisitioner1 and ShipVia==ShipVia1):
+                    print("Contents Match between purchaser and manager!")
+                    po_approved = "Purchase Order Approved"
+                    po_approved_encrypted = rsa_encrypt_message(pub_key_manager, po_approved)
+                    s.send(po_approved_encrypted)
+        else:
+            print("Contents Failed to Match!")
 
 s.close()
+conn_p.close()
+print ('Purchaser Disconnected')
